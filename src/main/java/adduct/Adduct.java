@@ -1,5 +1,5 @@
 package adduct;
-
+import java.util.Map;
 public class Adduct {
 
     /**
@@ -7,51 +7,30 @@ public class Adduct {
      *
      * @param mz mz
      * @param adduct adduct name ([M+H]+, [2M+H]+, [M+2H]2+, etc..)
-     *
      * @return the monoisotopic mass of the experimental mass mz with the adduct @param adduct
      */
     public static Double getMonoisotopicMassFromMZ(Double mz, String adduct) {
-        Double massToSearch;
-        // !! TODO METHOD
-        // !! TODO Create the necessary regex to obtain the multimer (number before the M) and the charge (number before the + or - (if no number, the charge is 1).
+        Double correction = getAdductCorrection(adduct);
+        if (correction == null) return null;
 
-        /*
-        if Adduct is single charge the formula is M = m/z +- adductMass. Charge is 1 so it does not affect
-
-        if Adduct is double or triple charged the formula is M = ( mz +- adductMass ) * charge
-
-        if adduct is a dimer or multimer the formula is M =  (mz +- adductMass) / numberOfMultimer
-
-        return monoisotopicMass;
-
-         */
-        return null;
+        int charge = getAdductCharge(adduct);
+        return mz * charge + correction;
     }
+
 
     /**
      * Calculate the mz of a monoisotopic mass with the corresponding adduct
      *
-     * @param monoisotopicMass
+     * @param monoMass
      * @param adduct adduct name ([M+H]+, [2M+H]+, [M+2H]2+, etc..)
-     *
-     * @return
+     * @return m/z
      */
-    public static Double getMZFromMonoisotopicMass(Double monoisotopicMass, String adduct) {
-        Double massToSearch;
-        // !! TODO METHOD
-        // !! TODO Create the necessary regex to obtain the multimer (number before the M) and the charge (number before the + or - (if no number, the charge is 1).
+    public static Double getMZFromMonoisotopicMass(Double monoMass, String adduct) {
+        Double correction = getAdductCorrection(adduct);
+        if (correction == null) return null;
 
-        /*
-        if Adduct is single charge the formula is m/z = M +- adductMass. Charge is 1 so it does not affect
-
-        if Adduct is double or triple charged the formula is mz = M/charge +- adductMass
-
-        if adduct is a dimer or multimer the formula is mz = M * numberOfMultimer +- adductMass
-
-        return monoisotopicMass;
-
-         */
-        return null;
+        int charge = getAdductCharge(adduct);
+        return (monoMass - correction) / charge;
     }
 
     /**
@@ -80,6 +59,22 @@ public class Adduct {
 
     }
 
+    // Restituisce la correzione dell’adduct, cercando prima tra i positivi, poi tra i negativi
+    private static Double getAdductCorrection(String adduct) {
+        Double correction = AdductList.MAPMZPOSITIVEADDUCTS.get(adduct);
+        if (correction == null) {
+            correction = AdductList.MAPMZNEGATIVEADDUCTS.get(adduct);
+        }
+        return correction;
+    }
+
+    // Determina la carica dell’adduct: 2 se contiene "2+", "2-", o "2−", altrimenti 1
+    private static int getAdductCharge(String adduct) {
+        if (adduct.contains("2+") || adduct.contains("2-") || adduct.contains("2−")) {
+            return 2;
+        }
+        return 1;
+    }
 
 
 

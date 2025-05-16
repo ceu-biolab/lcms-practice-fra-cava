@@ -1,9 +1,8 @@
 package lipid;
 
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import adduct.Adduct;
+import adduct.AdductList;
+import java.util.*;
 
 /**
  * Class to represent the annotation over a lipid
@@ -20,13 +19,11 @@ public class Annotation {
     private int score;
     private int totalScoresApplied;
 
-
     /**
      * @param lipid
      * @param mz
      * @param intensity
      * @param retentionTime
-     * @param ionizationMode
      */
     public Annotation(Lipid lipid, double mz, double intensity, double retentionTime, IoniationMode ionizationMode) {
         this(lipid, mz, intensity, retentionTime, ionizationMode, Collections.emptySet());
@@ -37,16 +34,15 @@ public class Annotation {
      * @param mz
      * @param intensity
      * @param retentionTime
-     * @param ionizationMode
      * @param groupedSignals
      */
-    public Annotation(Lipid lipid, double mz, double intensity, double retentionTime, IoniationMode ionizationMode, Set<Peak> groupedSignals) {
+    public Annotation(Lipid lipid, double mz, double intensity, double retentionTime,
+                      IoniationMode ionizationMode, Set<Peak> groupedSignals) {
         this.lipid = lipid;
         this.mz = mz;
         this.rtMin = retentionTime;
         this.intensity = intensity;
         this.ionizationMode = ionizationMode;
-        // !!TODO This set should be sorted according to help the program to deisotope the signals plus detect the adduct
         this.groupedSignals = new TreeSet<>(groupedSignals);
         this.score = 0;
         this.totalScoresApplied = 0;
@@ -84,7 +80,6 @@ public class Annotation {
         return Collections.unmodifiableSet(groupedSignals);
     }
 
-
     public int getScore() {
         return score;
     }
@@ -93,7 +88,7 @@ public class Annotation {
         this.score = score;
     }
 
-    // !CHECK Take into account that the score should be normalized between -1 and 1
+    // !TODO Take into account that the score should be normalized between 0 and 1
     public void addScore(int delta) {
         this.score += delta;
         this.totalScoresApplied++;
@@ -103,6 +98,7 @@ public class Annotation {
      * @return The normalized score between 0 and 1 that consists on the final number divided into the times that the rule
      * has been applied.
      */
+
     public double getNormalizedScore() {
         return (double) this.score / this.totalScoresApplied;
     }
@@ -129,4 +125,46 @@ public class Annotation {
     }
 
     // !!TODO Detect the adduct with an algorithm or with drools, up to the user.
+    public void detectAdductFromGroupedSignals(double toleranceMda) {
+        if (groupedSignals.size() < 2) {
+            System.out.println("Too few signals to detect an adduct");
+            return;
+        }
+
+        Map<String, Double> adductMap = (ionizationMode == IoniationMode.POSITIVE)
+                ? AdductList.MAPMZPOSITIVEADDUCTS
+                : AdductList.MAPMZNEGATIVEADDUCTS;
+
+        String bestAdduct = null;
+        double bestDelta = Double.MAX_VALUE;
+
+        for (Peak other : groupedSignals) {
+            if (Math.abs(other.getMz() - mz) < 0.00001) continue;
+
+            for (String baseAdduct : adductMap.keySet()) {
+                for (String otherAdduct : adductMap.keySet()) {
+                    Double m1 = Adduct.getMonoisotopicMassFromMZ(mz, baseAdduct);
+                    Double m2 = Adduct.getMonoisotopicMassFromMZ(other.getMz(), otherAdduct);
+
+                    if (m1 == null || m2 == null) continue;
+
+                    double deltaMda = Math.abs((m1 - m2) * 1000); // in mDa
+
+
+                    if (deltaMda <= toleranceMda && deltaMda < bestDelta) {
+                        bestDelta = deltaMda;
+                        bestAdduct = baseAdduct;
+                    }
+                }
+            }
+        }
+
+        if (bestAdduct != null) {
+            this.setAdduct(bestAdduct);
+            System.out.println("Detected Adduct: " + bestAdduct + " (Δ = " + bestDelta + " mDa)");
+        } else {
+            System.out.println("No Adduct Detected whithin the tolerance of " + toleranceMda + " mDa");
+        }
+    }
+
 }
