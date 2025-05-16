@@ -12,6 +12,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import lipid.IoniationMode;
+
 public class AdductDetectionTest {
     // !!TODO For the adduct detection both regular algorithms or drools can be used as far the tests are passed.
 
@@ -37,6 +39,8 @@ public class AdductDetectionTest {
 
         // Then we should call the algorithmic/knowledge system rules fired to detect the adduct and Set it!
         //
+        annotation.detectAdductFromGroupedSignals(1200.0);
+
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
         assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
     }
@@ -48,14 +52,15 @@ public class AdductDetectionTest {
         Peak mhH2O = new Peak(682.4894, 70000.0);     // [M+H–H₂O]+, ~18.0106 Da less
 
         Lipid lipid = new Lipid(1, "PE 36:2", "C41H78NO8P", "PE", 36, 2);
-        Annotation annotation = new Annotation(lipid, mh.getMz(), mh.getIntensity(), 7.5d, IoniationMode.POSITIVE, Set.of(mh, mhH2O));
+        Annotation annotation = new Annotation(lipid, mh.getMz(), mh.getIntensity(), 7.5d,IoniationMode.POSITIVE, Set.of(mh, mhH2O));
 
-
+        annotation.detectAdductFromGroupedSignals(1200.0);
 
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
-
         assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
     }
+
+
 
     @Test
     public void shouldDetectDoublyChargedAdduct() {
@@ -65,11 +70,28 @@ public class AdductDetectionTest {
         Peak doublyCharged = new Peak(350.754, 85000.0);   // [M+2H]2+
 
         Lipid lipid = new Lipid(3, "TG 54:3", "C57H104O6", "TG", 54, 3);
-        Annotation annotation = new Annotation(lipid, singlyCharged.getMz(), singlyCharged.getIntensity(), 10d, IoniationMode.POSITIVE, Set.of(singlyCharged, doublyCharged));
+        Annotation annotation = new Annotation(lipid, singlyCharged.getMz(), singlyCharged.getIntensity(), 10d,IoniationMode.POSITIVE, Set.of(singlyCharged, doublyCharged));
+
+        annotation.detectAdductFromGroupedSignals(1200.0);
 
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
-
         assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
     }
+
+//    @Test
+//    public void shouldDetectNegativeAdductMH() {
+//
+//        Peak mh = new Peak(758.569, 90000.0);      // [M-H]−
+//        Peak mCl = new Peak(794.546, 85000.0);     // [M+Cl]−
+//
+//        Lipid lipid = new Lipid(99, "PA 36:2", "C39H74O8P", "PA", 36, 2);
+//        // negative ionization mode
+//        Annotation annotation = new Annotation(lipid, mh.getMz(), mh.getIntensity(), 6.2, IoniationMode.NEGATIVE, Set.of(mh, mCl));
+//
+//        annotation.detectAdductFromGroupedSignals(1200.0);
+//
+//        assertNotNull("Negative Adduct to be detected", annotation.getAdduct());
+//
+//    }
 
 }
